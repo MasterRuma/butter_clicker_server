@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>트릭컬 리바이브 버터 클릭커</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* 기존 CSS 유지 */
+      a {
+        font-family: "Noto Sans KR", sans-serif;
+        font-optical-sizing: auto;
+        font-weight: 400;
+        font-style: normal;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        background: #f5f5f5;
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .death_style {
+        font-size: 1.5em;
+        color: #333;
+        position: absolute;
+        top: 80%;
+        width: 100%;
+        text-align: center;
+      }
+      .count_style {
+        font-size: 2em;
+        color: #333;
+        position: absolute;
+        top: 15%;
+        width: 100%;
+        text-align: center;
+      }
+      img#butter-button {
+        cursor: pointer;
+        width: 300px;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s;
+        position: relative;
+        z-index: 1;
+      }
+      img#butter-button:hover {
+        transform: scale(1.1);
+      }
+      .move {
+        animation: moveRightToLeft 1.5s linear forwards;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 500px;
+        height: auto;
+        z-index: 0;
+      }
+      @keyframes moveRightToLeft {
+        from {
+          left: 100%;
+        }
+        to {
+          left: -300px;
+        }
+      }
+
+      /* 메뉴바 스타일 */
+      #menu-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 50px; /* 메뉴바의 높이 */
+        background-color: #333;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center; /* 가운데 정렬 */
+        padding: 0 15px; /* 좌우 패딩 */
+        box-sizing: border-box;
+        z-index: 1000;
+        transition: transform 0.5s ease; /* 애니메이션을 위한 전환 */
+      }
+
+      #menu-bar #menu-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+      }
+
+      #menu-bar #menu-content p {
+        margin: 0;
+        font-size: 1.2em;
+      }
+
+      #rankings {
+        display: none; /* 기본적으로 숨김 상태 */
+        background-color: #fff;
+        color: #000;
+        padding: 10px;
+        border-radius: 4px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        position: absolute;
+        top: 60px;
+        left: 0;
+        width: calc(100% - 30px);
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      #rankings table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      #rankings th,
+      #rankings td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+      }
+
+      #rankings th {
+        background-color: #f4f4f4;
+      }
+
+      #show-rankings {
+        background-color: #444;
+        border: none;
+        color: white;
+        font-size: 1em;
+        padding: 5px 10px;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+
+      #show-rankings:hover {
+        background-color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="menu-bar">
+      <div id="menu-content">
+        <button id="show-rankings">순위 보기</button>
+        <div id="rankings">
+          <table>
+            <thead>
+              <tr>
+                <th>순위</th>
+                <th>닉네임</th>
+                <th>주말 농장 간 횟수</th>
+                <th>옐로카드 횟수</th>
+              </tr>
+            </thead>
+            <tbody id="rankings-body">
+              <!-- 순위 데이터가 여기에 추가됩니다 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="death_style">
+      <a>주말농장 간 횟수</a>
+      <a id="death_count">0</a>
+      <a>회</a>
+    </div>
+    <div class="count_style">
+      <a>옐로카드</a>
+      <a id="count">0</a>
+      <a>장</a>
+    </div>
+    <img
+      id="butter-button"
+      src="assets/butter_button.png"
+      onclick="press_butter()"
+    />
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const nickname = localStorage.getItem("nickname");
+        if (!nickname) {
+          window.location.href = "/"; // 닉네임이 없으면 홈으로 리디렉션
+          return;
+        }
+
+        fetch(`/get_user_stats?username=${nickname}`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.count !== undefined) {
+              document.getElementById("count").innerHTML = data.count;
+            }
+            if (data.death_count !== undefined) {
+              document.getElementById("death_count").innerHTML =
+                data.death_count;
+            }
+          })
+          .catch((error) => console.error("Error fetching stats:", error));
+
+        const showRankingsButton = document.getElementById("show-rankings");
+        const rankingsDiv = document.getElementById("rankings");
+
+        showRankingsButton.addEventListener("click", () => {
+          if (rankingsDiv.style.display === "none") {
+            fetch("/get_rankings")
+              .then((response) => response.json())
+              .then((data) => {
+                const rankingsBody = document.getElementById("rankings-body");
+                rankingsBody.innerHTML = ""; // 기존 내용 초기화
+
+                data.forEach((entry, index) => {
+                  const row = document.createElement("tr");
+                  row.innerHTML = `
+                                    <td>${index + 1}</td>
+                                    <td>${entry.username}</td>
+                                    <td>${entry.death_count}</td>
+                                    <td>${entry.count}</td>
+                                `;
+                  rankingsBody.appendChild(row);
+                });
+
+                rankingsDiv.style.display = "block";
+              })
+              .catch((error) =>
+                console.error("Error fetching rankings:", error)
+              );
+          } else {
+            rankingsDiv.style.display = "none";
+          }
+        });
+      });
+
+      function press_butter() {
+        // 현재 카운트와 죽음 횟수 가져오기
+        let count = parseInt(document.getElementById("count").innerHTML);
+        let death_count = parseInt(
+          document.getElementById("death_count").innerHTML
+        );
+
+        // 카운트 증가
+        count += 1;
+        document.getElementById("count").innerHTML = count;
+
+        // 서버에 통계 업데이트 요청
+        fetch("/update_stats", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: localStorage.getItem("nickname"),
+            count: count,
+            death_count: death_count,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {})
+          .catch((error) => {
+            console.error("Error updating stats:", error);
+          });
+
+        // 이스터 에그를 위한 랜덤 값 생성
+        const easter_egg = Math.floor(Math.random() * 11);
+
+        // 카운트가 100의 배수일 때 애니메이션 생성
+        if (count % 100 === 0) {
+          create_animation("assets/angry.png", "assets/angry.mp3");
+          count = 0; // 카운트 초기화
+          death_count += 1; // 죽음 횟수 증가
+          document.getElementById("death_count").innerHTML = death_count;
+          document.getElementById("count").innerHTML = 0;
+
+          // 서버에 통계 업데이트 요청 (재전송)
+          fetch("/update_stats", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: localStorage.getItem("nickname"),
+              count: count,
+              death_count: death_count,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {})
+            .catch((error) => {
+              console.error("Error updating stats:", error);
+            });
+        } else {
+          // 이스터 에그 또는 일반 애니메이션 생성
+          if (easter_egg <= 2) {
+            create_animation("assets/wawaa.png", "assets/wawaa.mp3");
+          } else {
+            create_animation("assets/butter.gif", "assets/butter.mp3");
+          }
+        }
+      }
+
+      function create_animation(imageSrc, audioSrc) {
+        var audio = new Audio(audioSrc);
+        audio
+          .play()
+          .catch((error) => console.error("Failed to play audio:", error));
+
+        var butterAnimation = document.createElement("img");
+        butterAnimation.src = imageSrc;
+        butterAnimation.className = "move";
+
+        document.body.appendChild(butterAnimation);
+
+        butterAnimation.addEventListener("animationend", () => {
+          butterAnimation.remove();
+        });
+      }
+
+      // 우클릭 방지 기능
+      document.addEventListener("contextmenu", (event) => {
+        event.preventDefault();
+      });
+
+      // 이미지 드래그 방지 기능
+      document.addEventListener("dragstart", (event) => {
+        event.preventDefault();
+      });
+    </script>
+  </body>
+</html>
